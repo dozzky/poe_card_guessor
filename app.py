@@ -52,7 +52,7 @@ st.write(f"Попыток осталось: **{st.session_state.attempts}**")
 if st.session_state.current_image:
     image_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
     img = Image.open(image_path)
-    st.image(img, caption="Ваша карта", use_column_width=True)
+    st.image(img, caption="Ваша карта", use_container_width=True)
 
 # === Ввод ответа ===
 if st.session_state.result == "":
