@@ -74,6 +74,8 @@ if st.session_state.result == "":
                     st.session_state.hints.append(f"Подсказка: первые буквы слов — {initials}")
 
                 if st.session_state.attempts == 0:
+                    correct_answer = correct_answer.replace("_"," ")
+                    correct_answer = correct_answer[:-4]
                     st.session_state.result = f"❌ Попытки закончились! Правильный ответ: {correct_answer}"
         st.rerun()
 
