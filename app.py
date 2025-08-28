@@ -25,18 +25,16 @@ def get_random_image():
     return random.choice(files) if files else None
 
 def generate_first_hint(words: list[str]) -> str:
-    """Подсказка: показываем длину каждого слова символами '_'."""
-    return "   ".join("  ".join("_" for _ in word) for word in words)
+    """Подсказка 1: показываем длину каждого слова символами '_', с пробелами между буквами и словами."""
+    return "   ".join(" ".join("_" for _ in word) for word in words)
 
 def generate_second_hint(words: list[str]) -> str:
-    """Подсказка: открываем случайные буквы (1-2 на слово, не рядом)."""
+    """Подсказка 2: случайно открываем 1–2 буквы в каждом слове, с пробелами между буквами и словами."""
     hint_words = []
     for word in words:
         if len(word) <= 2:
-            # Для коротких слов показываем первую букву
-            indices = [0]
+            indices = [0]  # короткие слова — показываем первую букву
         else:
-            # Выбираем 1-2 случайных индекса без соседей
             num_reveals = random.choice([1, 2])
             possible_indices = list(range(len(word)))
             random.shuffle(possible_indices)
@@ -46,10 +44,8 @@ def generate_second_hint(words: list[str]) -> str:
                     indices.append(idx)
                 if len(indices) == num_reveals:
                     break
-        hint_word = "".join(
-            letter if i in indices else "_" for i, letter in enumerate(word)
-        )
-        hint_words.append(" ".join(hint_word))
+        hint_word = " ".join(letter if i in indices else "_" for i, letter in enumerate(word))
+        hint_words.append(hint_word)
     return "   ".join(hint_words)
 
 # === ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ===
