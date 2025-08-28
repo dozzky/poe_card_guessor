@@ -24,6 +24,34 @@ def get_random_image():
     files = [f for f in os.listdir(IMAGE_FOLDER) if f.lower().endswith(ALLOWED_EXT)]
     return random.choice(files) if files else None
 
+def generate_first_hint(words: list[str]) -> str:
+    """Подсказка: показываем длину каждого слова символами '_'."""
+    return "   ".join(" ".join("_" for _ in word) for word in words)
+
+def generate_second_hint(words: list[str]) -> str:
+    """Подсказка: открываем случайные буквы (1-2 на слово, не рядом)."""
+    hint_words = []
+    for word in words:
+        if len(word) <= 2:
+            # Для коротких слов показываем первую букву
+            indices = [0]
+        else:
+            # Выбираем 1-2 случайных индекса без соседей
+            num_reveals = random.choice([1, 2])
+            possible_indices = list(range(len(word)))
+            random.shuffle(possible_indices)
+            indices = []
+            for idx in possible_indices:
+                if all(abs(idx - chosen) > 1 for chosen in indices):
+                    indices.append(idx)
+                if len(indices) == num_reveals:
+                    break
+        hint_word = "".join(
+            letter if i in indices else "_" for i, letter in enumerate(word)
+        )
+        hint_words.append(" ".join(hint_word))
+    return "   ".join(hint_words)
+
 # === ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ===
 if "current_image" not in st.session_state:
     st.session_state.current_image = None
@@ -60,21 +88,19 @@ if st.session_state.result == "":
     if st.button("Отправить"):
         if guess.strip():
             correct_answer = st.session_state.current_image.rsplit(".", 1)[0]
+            words = split_original_name(correct_answer)
             if normalize_name(guess) == normalize_name(correct_answer):
                 st.session_state.result = "✅ Верно!"
             else:
-                # уменьшаем попытки
                 st.session_state.attempts -= 1
-                words = split_original_name(correct_answer)
-
                 if st.session_state.attempts == 2:
-                    st.session_state.hints.append(f"Подсказка: карта состоит из {len(words)} слов.")
+                    hint = generate_first_hint(words)
+                    st.session_state.hints.append(f"Подсказка: {hint}")
                 elif st.session_state.attempts == 1:
-                    initials = " ".join(w[0].upper() for w in words)
-                    st.session_state.hints.append(f"Подсказка: первые буквы слов — {initials}")
-
+                    hint = generate_second_hint(words)
+                    st.session_state.hints.append(f"Подсказка: {hint}")
                 if st.session_state.attempts == 0:
-                    correct_answer = correct_answer.replace("_"," ")
+                    correct_answer = correct_answer.replace("_", " ")
                     correct_answer = correct_answer[:-4]
                     st.session_state.result = f"❌ Попытки закончились! Правильный ответ: {correct_answer}"
         st.rerun()
