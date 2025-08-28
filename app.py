@@ -26,7 +26,7 @@ def get_random_image():
 
 def generate_first_hint(words: list[str]) -> str:
     """Подсказка 1: показываем длину каждого слова символами '_', с пробелами между буквами и словами."""
-    return "   ".join(" ".join("_" for _ in word) for word in words)
+    return " | ".join(" ".join("_" for _ in word) for word in words)
 
 def generate_second_hint(words: list[str]) -> str:
     """Подсказка 2: случайно открываем 1–2 буквы в каждом слове, с пробелами между буквами и словами."""
@@ -46,7 +46,7 @@ def generate_second_hint(words: list[str]) -> str:
                     break
         hint_word = " ".join(letter if i in indices else "_" for i, letter in enumerate(word))
         hint_words.append(hint_word)
-    return "   ".join(hint_words)
+    return " | ".join(hint_words)
 
 # === ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ===
 if "current_image" not in st.session_state:
