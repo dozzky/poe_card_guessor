@@ -75,7 +75,7 @@ if st.session_state.result == "":
 
                 if st.session_state.attempts == 0:
                     st.session_state.result = f"❌ Попытки закончились! Правильный ответ: {correct_answer}"
-        st.experimental_rerun()
+        st.rerun()
 
 # === ПОДСКАЗКИ ===
 if st.session_state.hints:
@@ -88,4 +88,4 @@ if st.session_state.result:
     st.subheader(st.session_state.result)
     if st.button("Начать заново"):
         start_new_round()
-        st.experimental_rerun()
+        st.rerun()
