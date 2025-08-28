@@ -26,7 +26,7 @@ def get_random_image():
 
 def generate_first_hint(words: list[str]) -> str:
     """Подсказка: показываем длину каждого слова символами '_'."""
-    return "   ".join(" ".join("_" for _ in word) for word in words)
+    return "   ".join("  ".join("_" for _ in word) for word in words)
 
 def generate_second_hint(words: list[str]) -> str:
     """Подсказка: открываем случайные буквы (1-2 на слово, не рядом)."""
