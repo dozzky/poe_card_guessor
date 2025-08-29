@@ -108,13 +108,13 @@ elif st.session_state.mode == "По описанию" and st.session_state.curre
     st.info(st.session_state.current_card["description"])
 
 elif st.session_state.mode == "Смешанный":
-    if st.session_state.current_card is not None:
-        st.subheader("Описание карты:")
-        st.info(st.session_state.current_card["description"])
     if st.session_state.current_image:
         image_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
         img = Image.open(image_path)
         st.image(img, caption="Ваша карта", use_container_width=True)
+    if st.session_state.current_card is not None:
+        st.subheader("Описание карты:")
+        st.info(st.session_state.current_card["description"])
 
 # === Ввод ответа ===
 if st.session_state.result == "":
