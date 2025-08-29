@@ -68,8 +68,14 @@ def generate_second_hint(words: list[str]) -> str:
     return " | ".join(hint_words)
 
 def generate_options(df, correct_name, num_options=4):
-    all_names = df["name"].tolist()
-    wrong_names = random.sample([n for n in all_names if n != correct_name], num_options - 1)
+    """Создаёт список из правильного ответа и случайных названий карт без артефактов."""
+    
+    def clean_name(name: str) -> str:
+        return name.split("http")[0].strip()
+
+    correct_name = clean_name(correct_name)
+    all_names = [clean_name(n) for n in df["name"].unique() if clean_name(n) != correct_name]
+    wrong_names = random.sample(all_names, num_options - 1)
     options = wrong_names + [correct_name]
     random.shuffle(options)
     return options
