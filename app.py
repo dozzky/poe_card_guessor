@@ -11,28 +11,28 @@ CSV_FILE = "div_cards_clean.csv"
 
 # === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
 def normalize_name(name: str) -> str:
+    """Приводим имя к нижнему регистру, убираем пробелы, подчеркивания и суффикс '_card'."""
     name = name.lower().replace(" ", "").replace("_", "")
     if name.endswith("card"):
         name = name[:-4]
     return name
 
 def split_original_name(name: str) -> list[str]:
+    """Возвращает слова из имени файла без расширения и суффикса _card."""
     clean_name = name.rsplit(".", 1)[0].replace("_card", "")
     return clean_name.split("_")
 
-def get_random_image():
-    files = [f for f in os.listdir(IMAGE_FOLDER) if f.lower().endswith(ALLOWED_EXT)]
-    return random.choice(files) if files else None
+def find_image_for_card(card_name: str):
+    """Ищет файл картинки по названию карты с учётом '_card' и разных расширений."""
+    base_name = card_name.replace(" ", "_") + "_card"
+    for ext in ALLOWED_EXT:
+        path = os.path.join(IMAGE_FOLDER, base_name + ext)
+        if os.path.exists(path):
+            return base_name + ext
+    return None
 
 def get_random_card_from_csv(df):
     return df.sample(1).iloc[0]
-
-def generate_options(df, correct_name, num_options=4):
-    all_names = df["name"].tolist()
-    wrong_names = random.sample([n for n in all_names if n != correct_name], num_options - 1)
-    options = wrong_names + [correct_name]
-    random.shuffle(options)
-    return options
 
 def generate_first_hint(words: list[str]) -> str:
     return " | ".join(" ".join("_" for _ in word) for word in words)
@@ -56,64 +56,71 @@ def generate_second_hint(words: list[str]) -> str:
         hint_words.append(hint_word)
     return " | ".join(hint_words)
 
+def generate_options(df, correct_name, num_options=4):
+    """Создаем список вариантов с 1 правильным и (num_options-1) случайных неправильных."""
+    all_names = df["name"].tolist()
+    wrong_names = random.sample([n for n in all_names if n != correct_name], num_options - 1)
+    options = wrong_names + [correct_name]
+    random.shuffle(options)
+    return options
+
 # === ЗАГРУЗКА CSV ===
 df_cards = pd.read_csv(CSV_FILE)
 
 # === ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ===
 if "mode" not in st.session_state:
     st.session_state.mode = "По картинке"
-if "current_image" not in st.session_state:
-    st.session_state.current_image = None
 if "current_card" not in st.session_state:
     st.session_state.current_card = None
-if "options" not in st.session_state:
-    st.session_state.options = []
+if "current_image" not in st.session_state:
+    st.session_state.current_image = None
 if "attempts" not in st.session_state:
     st.session_state.attempts = 3
 if "hints" not in st.session_state:
     st.session_state.hints = []
 if "result" not in st.session_state:
     st.session_state.result = ""
+if "options" not in st.session_state:
+    st.session_state.options = []
 if "show_image" not in st.session_state:
     st.session_state.show_image = False
 
 # === ФУНКЦИЯ НОВОГО РАУНДА ===
 def start_new_round():
-    st.session_state.result = ""
-    st.session_state.attempts = 3
-    st.session_state.hints = []
-    st.session_state.options = []
-    st.session_state.current_image = None
     st.session_state.current_card = None
+    st.session_state.current_image = None
+    st.session_state.result = ""
+    st.session_state.hints = []
+    st.session_state.attempts = 3
+    st.session_state.options = []
     st.session_state.show_image = False
 
-    if st.session_state.mode == "По картинке":
-        st.session_state.current_image = get_random_image()
+    mode = st.session_state.mode
+    card = get_random_card_from_csv(df_cards)
+    st.session_state.current_card = card
 
-    elif st.session_state.mode == "По описанию":
-        st.session_state.current_card = get_random_card_from_csv(df_cards)
+    if mode == "По картинке":
+        st.session_state.current_image = find_image_for_card(card["name"])
+        st.session_state.show_image = True
 
-    elif st.session_state.mode == "Лёгкий режим":
-        card = get_random_card_from_csv(df_cards)
-        st.session_state.current_card = card
-        st.session_state.current_image = f"{card['name'].replace(' ', '_')}.jpg"
-        st.session_state.show_image = True  # показываем и картинку, и описание
+    elif mode == "По описанию":
+        st.session_state.show_image = False
 
-    elif st.session_state.mode == "Случайный режим":
-        card = get_random_card_from_csv(df_cards)
-        st.session_state.current_card = card
-        if random.choice([True, False]):  # 50% шанс показать картинку
-            st.session_state.current_image = f"{card['name'].replace(' ', '_')}.jpg"
+    elif mode == "Лёгкий режим":
+        st.session_state.current_image = find_image_for_card(card["name"])
+        st.session_state.show_image = True
+
+    elif mode == "Случайный режим":
+        if random.choice([True, False]):
+            st.session_state.current_image = find_image_for_card(card["name"])
             st.session_state.show_image = True
         else:
             st.session_state.show_image = False
 
-    elif st.session_state.mode == "Множественный выбор":
-        card = get_random_card_from_csv(df_cards)
-        st.session_state.current_card = card
+    elif mode == "Множественный выбор":
+        st.session_state.current_image = find_image_for_card(card["name"])
+        st.session_state.show_image = True
         st.session_state.options = generate_options(df_cards, card["name"], 4)
-        st.session_state.current_image = f"{card['name'].replace(' ', '_')}.jpg"
-        st.session_state.show_image = True  # всегда картинка в этом режиме
 
 # === ИНТЕРФЕЙС ===
 st.title("🎴 Угадай карту")
@@ -122,23 +129,24 @@ mode = st.radio(
     ["По картинке", "По описанию", "Лёгкий режим", "Случайный режим", "Множественный выбор"],
     key="mode_select"
 )
-
 if st.session_state.mode != mode:
     st.session_state.mode = mode
     start_new_round()
 
-# === РЕЖИМ МНОЖЕСТВЕННОГО ВЫБОРА ===
+card = st.session_state.current_card
+
+# === ПОКАЗ КАРТИНКИ ===
+if st.session_state.show_image and st.session_state.current_image:
+    image_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
+    if os.path.exists(image_path):
+        img = Image.open(image_path)
+        st.image(img, caption="Ваша карта", use_container_width=True)
+    else:
+        st.warning("Картинка не найдена для этой карты.")
+
+# === ЛОГИКА ДЛЯ РАЗНЫХ РЕЖИМОВ ===
 if st.session_state.mode == "Множественный выбор":
-    if st.session_state.current_card is None:
-        start_new_round()
-
-    card = st.session_state.current_card
-    if st.session_state.current_image:
-        img_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
-        if os.path.exists(img_path):
-            img = Image.open(img_path)
-            st.image(img, caption="Ваша карта", use_container_width=True)
-
+    # Показываем кнопки выбора
     if st.session_state.result == "":
         for option in st.session_state.options:
             if st.button(option):
@@ -153,53 +161,33 @@ if st.session_state.mode == "Множественный выбор":
             start_new_round()
             st.rerun()
 
-# === ОСТАЛЬНЫЕ РЕЖИМЫ ===
 else:
+    # Для остальных режимов
     if st.session_state.result == "":
-        # Показ картинки (если нужно)
-        if st.session_state.show_image and st.session_state.current_image:
-            img_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
-            if os.path.exists(img_path):
-                img = Image.open(img_path)
-                st.image(img, caption="Ваша карта", use_container_width=True)
-
-        # Показ описания (если нужно)
-        if st.session_state.mode in ["По описанию", "Лёгкий режим", "Случайный режим"]:
-            if st.session_state.current_card is not None and (
-                st.session_state.mode != "Случайный режим" or not st.session_state.show_image
-            ):
-                st.subheader("Описание карты:")
-                st.info(st.session_state.current_card["description"])
-
         guess = st.text_input("Введите название карты", key="guess_input")
         if st.button("Отправить"):
             if guess.strip():
-                correct_answer = None
-                if st.session_state.current_image:
-                    correct_answer = st.session_state.current_image.rsplit(".", 1)[0]
-                elif st.session_state.current_card is not None:
-                    correct_answer = st.session_state.current_card["name"]
-
+                correct_answer = card["name"]
                 if normalize_name(guess) == normalize_name(correct_answer):
                     st.session_state.result = "✅ Верно!"
                 else:
                     st.session_state.attempts -= 1
-                    words = split_original_name(correct_answer.replace(" ", "_"))
+                    words = split_original_name(correct_answer.replace(" ", "_") + "_card")
                     if st.session_state.attempts == 2:
                         st.session_state.hints.append(f"Подсказка: {generate_first_hint(words)}")
                     elif st.session_state.attempts == 1:
                         st.session_state.hints.append(f"Подсказка: {generate_second_hint(words)}")
                     if st.session_state.attempts == 0:
                         st.session_state.result = f"❌ Попытки закончились! Правильный ответ: {correct_answer}"
-            st.rerun()
-
-    if st.session_state.hints:
-        st.subheader("💡 Подсказки:")
-        for hint in st.session_state.hints:
-            st.info(hint)
-
-    if st.session_state.result:
+                st.rerun()
+    else:
         st.subheader(st.session_state.result)
         if st.button("Начать заново"):
             start_new_round()
             st.rerun()
+
+# === ПОДСКАЗКИ ===
+if st.session_state.hints:
+    st.subheader("💡 Подсказки:")
+    for hint in st.session_state.hints:
+        st.info(hint)
