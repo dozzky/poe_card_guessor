@@ -145,15 +145,23 @@ if st.session_state.mode == "Множественный выбор":
 else:
     if st.session_state.result == "":
         # Вывод подсказок (картинка, описание и т.д.)
-        if st.session_state.mode in ["По картинке", "Лёгкий режим", "Случайный режим"] and st.session_state.current_image:
+        if st.session_state.mode in ["Лёгкий режим"] and st.session_state.current_image:
             img_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
             if os.path.exists(img_path):
                 img = Image.open(img_path)
                 st.image(img, caption="Ваша карта", use_container_width=True)
-
-        if st.session_state.mode in ["По описанию", "Лёгкий режим", "Случайный режим"] and st.session_state.current_card is not None:
             st.subheader("Описание карты:")
             st.info(st.session_state.current_card["description"])
+        else:
+            if st.session_state.mode in ["По картинке", "Лёгкий режим", "Случайный режим"] and st.session_state.current_image:
+                img_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
+                if os.path.exists(img_path):
+                    img = Image.open(img_path)
+                    st.image(img, caption="Ваша карта", use_container_width=True)
+    
+            if st.session_state.mode in ["По описанию", "Лёгкий режим", "Случайный режим"] and st.session_state.current_card is not None:
+                st.subheader("Описание карты:")
+                st.info(st.session_state.current_card["description"])
 
         guess = st.text_input("Введите название карты", key="guess_input")
         if st.button("Отправить"):
