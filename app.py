@@ -11,19 +11,16 @@ CSV_FILE = "div_cards_clean.csv"
 
 # === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
 def normalize_name(name: str) -> str:
-    """Приводим имя к нижнему регистру, убираем пробелы, подчеркивания и суффикс '_card'."""
     name = name.lower().replace(" ", "").replace("_", "")
     if name.endswith("card"):
         name = name[:-4]
     return name
 
 def split_original_name(name: str) -> list[str]:
-    """Возвращает слова из имени файла без расширения и суффикса _card."""
     clean_name = name.rsplit(".", 1)[0].replace("_card", "")
     return clean_name.split("_")
 
 def find_image_for_card(card_name: str):
-    """Ищет файл картинки по названию карты с учётом '_card' и разных расширений."""
     base_name = card_name.replace(" ", "_") + "_card"
     for ext in ALLOWED_EXT:
         path = os.path.join(IMAGE_FOLDER, base_name + ext)
@@ -57,7 +54,6 @@ def generate_second_hint(words: list[str]) -> str:
     return " | ".join(hint_words)
 
 def generate_options(df, correct_name, num_options=4):
-    """Создаем список вариантов с 1 правильным и (num_options-1) случайных неправильных."""
     all_names = df["name"].tolist()
     wrong_names = random.sample([n for n in all_names if n != correct_name], num_options - 1)
     options = wrong_names + [correct_name]
@@ -144,9 +140,21 @@ if st.session_state.show_image and st.session_state.current_image:
     else:
         st.warning("Картинка не найдена для этой карты.")
 
-# === ЛОГИКА ДЛЯ РАЗНЫХ РЕЖИМОВ ===
-if st.session_state.mode == "Множественный выбор":
-    # Показываем кнопки выбора
+# === ПОКАЗ ОПИСАНИЯ ===
+show_description = False
+if mode == "По описанию":
+    show_description = True
+elif mode == "Лёгкий режим":
+    show_description = True
+elif mode == "Случайный режим" and not st.session_state.show_image:
+    show_description = True
+
+if show_description and st.session_state.current_card is not None:
+    st.subheader("Описание карты:")
+    st.info(st.session_state.current_card["description"])
+
+# === РЕЖИМ МНОЖЕСТВЕННОГО ВЫБОРА ===
+if mode == "Множественный выбор":
     if st.session_state.result == "":
         for option in st.session_state.options:
             if st.button(option):
@@ -161,8 +169,8 @@ if st.session_state.mode == "Множественный выбор":
             start_new_round()
             st.rerun()
 
+# === ОСТАЛЬНЫЕ РЕЖИМЫ (текстовый ввод) ===
 else:
-    # Для остальных режимов
     if st.session_state.result == "":
         guess = st.text_input("Введите название карты", key="guess_input")
         if st.button("Отправить"):
