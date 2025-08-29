@@ -7,7 +7,7 @@ from PIL import Image
 # === НАСТРОЙКИ ===
 IMAGE_FOLDER = "images"
 ALLOWED_EXT = (".png", ".jpg", ".jpeg", ".gif")
-CSV_FILE = "data/div_cards_clean.csv"
+CSV_FILE = "div_cards_clean.csv"
 
 # === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
 def normalize_name(name: str) -> str:
