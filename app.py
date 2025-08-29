@@ -59,6 +59,8 @@ if "current_image" not in st.session_state:
     st.session_state.current_image = None
 if "current_card" not in st.session_state:
     st.session_state.current_card = None
+if "show_part" not in st.session_state:
+    st.session_state.show_part = None  # для случайного режима
 if "attempts" not in st.session_state:
     st.session_state.attempts = 3
 if "hints" not in st.session_state:
@@ -71,6 +73,7 @@ def start_new_round():
     st.session_state.attempts = 3
     st.session_state.hints = []
     st.session_state.result = ""
+    st.session_state.show_part = None
 
     if st.session_state.mode == "По картинке":
         st.session_state.current_image = get_random_image()
@@ -80,43 +83,61 @@ def start_new_round():
         st.session_state.current_card = get_random_card_from_csv(df_cards)
         st.session_state.current_image = None
 
-    elif st.session_state.mode == "Смешанный":
-        # Выбираем случайную карту и пробуем найти её картинку
+    elif st.session_state.mode == "Лёгкий режим":
         card = get_random_card_from_csv(df_cards)
         st.session_state.current_card = card
         candidate_name = card["name"].replace(" ", "_").lower()
         images = [f for f in os.listdir(IMAGE_FOLDER) if f.lower().startswith(candidate_name)]
         st.session_state.current_image = random.choice(images) if images else None
 
+    elif st.session_state.mode == "Смешанный":
+        card = get_random_card_from_csv(df_cards)
+        st.session_state.current_card = card
+        candidate_name = card["name"].replace(" ", "_").lower()
+        images = [f for f in os.listdir(IMAGE_FOLDER) if f.lower().startswith(candidate_name)]
+        st.session_state.current_image = random.choice(images) if images else None
+        # Выбираем, что показывать
+        st.session_state.show_part = random.choice(["image", "description"])
+
 # === ВЫБОР РЕЖИМА ===
 st.title("🎴 Угадай карту")
-mode = st.radio("Выберите режим:", ["По картинке", "По описанию", "Смешанный"], key="mode_select")
+mode = st.radio(
+    "Выберите режим:",
+    ["По картинке", "По описанию", "Лёгкий режим", "Смешанный"],
+    key="mode_select"
+)
 if st.session_state.mode != mode:
     st.session_state.mode = mode
     start_new_round()
 
 st.write(f"Попыток осталось: **{st.session_state.attempts}**")
 
-# === ИНТЕРФЕЙС ДЛЯ РЕЖИМОВ ===
+# === ИНТЕРФЕЙС ПОКАЗА ===
 if st.session_state.mode == "По картинке" and st.session_state.current_image:
     image_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
-    img = Image.open(image_path)
-    st.image(img, caption="Ваша карта", use_container_width=True)
+    st.image(Image.open(image_path), caption="Ваша карта", use_container_width=True)
 
 elif st.session_state.mode == "По описанию" and st.session_state.current_card is not None:
     st.subheader("Описание карты:")
     st.info(st.session_state.current_card["description"])
 
-elif st.session_state.mode == "Смешанный":
+elif st.session_state.mode == "Лёгкий режим":
     if st.session_state.current_image:
         image_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
-        img = Image.open(image_path)
-        st.image(img, caption="Ваша карта", use_container_width=True)
+        st.image(Image.open(image_path), caption="Ваша карта", use_container_width=True)
     if st.session_state.current_card is not None:
         st.subheader("Описание карты:")
         st.info(st.session_state.current_card["description"])
 
-# === Ввод ответа ===
+elif st.session_state.mode == "Смешанный":
+    if st.session_state.show_part == "description" and st.session_state.current_card is not None:
+        st.subheader("Описание карты:")
+        st.info(st.session_state.current_card["description"])
+    elif st.session_state.show_part == "image" and st.session_state.current_image:
+        image_path = os.path.join(IMAGE_FOLDER, st.session_state.current_image)
+        st.image(Image.open(image_path), caption="Ваша карта", use_container_width=True)
+
+# === ВВОД ОТВЕТА ===
 if st.session_state.result == "":
     guess = st.text_input("Введите название карты", key="guess_input")
     if st.button("Отправить"):
@@ -125,12 +146,7 @@ if st.session_state.result == "":
             if st.session_state.mode == "По картинке":
                 correct_answer = st.session_state.current_image.rsplit(".", 1)[0]
                 words = split_original_name(correct_answer)
-
-            elif st.session_state.mode == "По описанию":
-                correct_answer = st.session_state.current_card["name"]
-                words = correct_answer.split()
-
-            elif st.session_state.mode == "Смешанный":
+            else:
                 correct_answer = st.session_state.current_card["name"]
                 words = correct_answer.split()
 
@@ -140,11 +156,9 @@ if st.session_state.result == "":
             else:
                 st.session_state.attempts -= 1
                 if st.session_state.attempts == 2:
-                    hint = generate_first_hint(words)
-                    st.session_state.hints.append(f"Подсказка: {hint}")
+                    st.session_state.hints.append(f"Подсказка: {generate_first_hint(words)}")
                 elif st.session_state.attempts == 1:
-                    hint = generate_second_hint(words)
-                    st.session_state.hints.append(f"Подсказка: {hint}")
+                    st.session_state.hints.append(f"Подсказка: {generate_second_hint(words)}")
                 if st.session_state.attempts == 0:
                     st.session_state.result = f"❌ Попытки закончились! Правильный ответ: {correct_answer}"
         st.rerun()
