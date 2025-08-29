@@ -28,6 +28,20 @@ def find_image_for_card(card_name: str):
             return base_name + ext
     return None
 
+def clean_card_data(card):
+    """Удаляет артефакты вида 'http...' из имени и описания карты."""
+    name = card["name"]
+    description = card["description"]
+
+    if "http" in name:
+        name = name.split("http")[0].strip()
+    if "http" in description:
+        description = description.split("http")[0].strip()
+
+    card["name"] = name
+    card["description"] = description
+    return card
+
 def get_random_card_from_csv(df):
     return df.sample(1).iloc[0]
 
@@ -93,6 +107,7 @@ def start_new_round():
 
     mode = st.session_state.mode
     card = get_random_card_from_csv(df_cards)
+    card = clean_card_data(card)
     st.session_state.current_card = card
 
     if mode == "По картинке":
